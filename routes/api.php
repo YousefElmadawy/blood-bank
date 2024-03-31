@@ -32,6 +32,13 @@ Route::group(['prefix' => 'v1'], function () {
     Route::middleware(['auth:sanctum'])->group(function () {
 
 
+        Route::get('cities', [MainController::class, 'cities']);
+        Route::get('governorates', [MainController::class, 'governorates']);
+
+        Route::get('categories', [MainController::class, 'categories']);
+
+        Route::get('cities', [MainController::class, 'cities']);
+        
         Route::get('settings', [MainController::class, 'settings']);
         Route::get('posts', [MainController::class, 'posts']);
         Route::get('posts/{post}', [MainController::class, 'post']);

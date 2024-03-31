@@ -3,10 +3,14 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\RegisterRequest;
+use App\Http\Requests\UserRequest;
+use App\Interfaces\AuthRepositoryInterface;
 use App\Mail\ResetPassword;
 use App\Models\Client;
 use App\Models\Contact;
+use App\Traits\Helper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
@@ -14,70 +18,41 @@ use Illuminate\Validation\Rule;
 
 class AuthController extends Controller
 {
-    public function jsonResponse($status, $message, $data = null)
-    {
+    use Helper;
+    private AuthRepositoryInterface $authRepository;
 
-        $response = [
-            'status' => $status,
-            'message' => $message,
-            'data' => $data,
-        ];
-        return response()->json($response);
+    public function __construct(AuthRepositoryInterface $authRepository)
+    {
+        $this->authRepository = $authRepository;
     }
 
-    public function register(Request $request)
+    public function register(UserRequest $request)
     {
-
-        $validitor = validator()->make($request->all(), [
-            'name' => 'required|max:255',
-            'email' => 'required|email|max:255|unique:users',
-            'date_of_birth' => 'required|date',
-            'last_donation_date' => 'required|date',
-            'password' => 'required|min:6',
-            'pin_code' => 'required',
-            'city_id' => 'required',
-            'blood_type_id' => 'required',
-            'phone' => 'required|numeric',
-        ]);
-
-        if ($validitor->fails()) {
-            return $this->jsonResponse(0, 'failed', $validitor->errors());
-        }
-
+        // dd($request->all());
         $request->merge(['password' => bcrypt($request->password)]);
-
-        $client = Client::create($request->all());
-        $token = $client->createToken($request->userAgent());
-        $client->api_token = $token->plainTextToken;
-        $client->save();
-
+        $client=$this->authRepository->register($request);
+       
         $client->governorates()->sync($request->governorate_id);
         $client->bloodTypes()->sync($request->blood_type_id);
 
-
-
-
-        return $this->jsonResponse(1, 'added succssfuly', [
-            'api_token' => $client->api_token,
+        return $this->jsonResponse(1, 'added succssfuly', [ 
             'client' => $client
         ]);
+        
+        if ($request->fails()) {
+            return $this->jsonResponse(0, 'Failled', $request->errors(), 400);
+        }
     }
 
-    public function login(Request $request)
+    public function login(LoginRequest $request)
     {
-
-        $validitor = validator()->make($request->all(), [
-            'password' => 'required|min:8',
-            'phone' => 'required|numeric',
-        ]);
-
-        if ($validitor->fails()) {
-            return $this->jsonResponse(0, 'failed', $validitor->errors());
-        }
-
-        $client = Client::where('phone', $request->phone)->first();
+      
+        $client =$this->authRepository->login($request) ;
 
         if ($client && Hash::check($request->password, $client->password)) {
+            $token = $client->createToken($request->userAgent());
+            $client->api_token = $token->plainTextToken;
+            $client->save();
             return $this->jsonResponse(
                 1,
                 'login succssfuly',
@@ -86,6 +61,9 @@ class AuthController extends Controller
                     'client' => $client
                 ]
             );
+        } 
+         if ($request->fails()) {
+            return $this->jsonResponse(0, 'failed', $request->errors());
         }
     }
 
@@ -97,6 +75,7 @@ class AuthController extends Controller
         ]);
 
         $client = Client::where('phone', $request->phone)->first();
+        
         if ($client) {
 
             $code = rand(1111, 9999);
@@ -171,6 +150,7 @@ class AuthController extends Controller
         if ($request->has('password')) {
             $client->password = bcrypt($request->password);
         }
+
         $client->save();
 
         if ($request->has('governorate_id')) {
