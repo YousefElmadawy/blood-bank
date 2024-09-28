@@ -3,7 +3,7 @@
 
 The Blood Bank messages.
 
-<x-mail::button :url="'http://127.0.0.1:8000/'">
+<x-mail::button :url="'http://127.0.0.1:8000/client/change-password'">
 Reset Password
 </x-mail::button>
 

@@ -48,11 +48,17 @@ class DonationRequest extends Model
     public function scopeFilter(Builder $bulider , $filters)
     {
 
-        if ($filters['blood_type_id'] ?? false ) {
-            $bulider->where('blood_type_id', 'LIKE', "%{$filters['blood_type_id']}%");
+        if ($filters['patient_name'] ?? false ) {
+            $bulider->where('patient_name', 'LIKE', "%{$filters['patient_name']}%");
         } 
         if ($filters['hospital_name'] ?? false ) {
-            $bulider->where('hospital_name', 'LIKE', "%{$filters['hospital_name']}%");
+            $bulider->where('hospital_name', '=', "%{$filters['hospital_name']}%");
+        }
+        if ($filters['city_id'] ?? false ) {
+            $bulider->where('city_id', '=',  $filters["city_id"]);
+        } 
+        if ($filters['blood_type_id'] ?? false ) {
+            $bulider->where('blood_type_id', '=', $filters["blood_type_id"]);
         }
 
         

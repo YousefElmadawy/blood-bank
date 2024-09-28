@@ -39,6 +39,7 @@ class ResetPassword extends Mailable
     public function content(): Content
     {
         return new Content(
+            view:'front.auth.change-password',
             markdown: 'mail.auth.reset',
             with: [
                 'pin_code' => $this->client->pin_code,

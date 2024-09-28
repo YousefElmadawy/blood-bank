@@ -12,7 +12,8 @@ class SettingController extends Controller
      */
     public function index()
     {
-        //
+        $settings=Setting::all();
+        return view('admin.settings.index',compact('settings'));
     }
 
     /**
@@ -20,7 +21,7 @@ class SettingController extends Controller
      */
     public function create()
     {
-        //
+        return view('admin.settings.create');
     }
 
     /**
@@ -28,7 +29,16 @@ class SettingController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        Setting::create([
+            'notification_setting_text'=>$request->notification_setting_text,
+            'email'=>$request->email,
+            'phone'=>$request->phone,
+            'about'=>$request->about,
+            'fb_link'=>$request->fb_link,
+            'tw_link'=>$request->tw_link,
+            'insta_link'=>$request->insta_link
+        ]);
+        return to_route('settings.index');
     }
 
     /**

@@ -23,13 +23,12 @@ class UserRequest extends FormRequest
     {
         return [
             'name' => 'required|max:255',
-            'email' => 'required|email|max:255|unique:users',
+            'email' => 'required|email|max:255|unique:clients',
             'date_of_birth' => 'required|date',
             'last_donation_date' => 'required|date',
             'password' => 'required|min:6',
-            'pin_code' => 'required',
             'city_id' => 'required',
-            'blood_type_id' => 'required',
+            'blood_type_id' =>'required',
             'phone' => 'required|numeric',
         ];
     }

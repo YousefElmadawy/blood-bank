@@ -37,7 +37,7 @@ Route::group(['prefix' => 'v1'], function () {
 
         Route::get('categories', [MainController::class, 'categories']);
 
-        Route::get('cities', [MainController::class, 'cities']);
+        // Route::get('cities', [MainController::class, 'cities']);
         
         Route::get('settings', [MainController::class, 'settings']);
         Route::get('posts', [MainController::class, 'posts']);

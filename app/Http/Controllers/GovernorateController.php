@@ -2,17 +2,23 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\GovernorateRequest;
+use App\Interfaces\GovernorateRepositoryInterface;
 use App\Models\Governorate;
 use Illuminate\Http\Request;
 
 class GovernorateController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
+    
+    public function __construct(protected GovernorateRepositoryInterface $governorateRepository) {
+        $this->governorateRepository = $governorateRepository;
+    }
     public function index()
     {
-        //
+        $governorates = $this->governorateRepository->allGovornorates();
+        // $cities = $this->governorateRepository->allcities();
+        return view('admin.governorates.index',compact('governorates'));
+
     }
 
     /**
@@ -20,15 +26,16 @@ class GovernorateController extends Controller
      */
     public function create()
     {
-        //
+        return view('admin.governorates.create');
     }
 
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(GovernorateRequest $request)
     {
-        //
+        $this->governorateRepository->createOne($request->all());
+        return to_route('governorates.index');
     }
 
     /**
@@ -44,15 +51,16 @@ class GovernorateController extends Controller
      */
     public function edit(Governorate $governorate)
     {
-        //
+        return view('admin.governorates.edit',compact('governorate'));
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Governorate $governorate)
+    public function update(GovernorateRequest $request, Governorate $governorate)
     {
-        //
+        $this->governorateRepository->updateOne($request->all(),$governorate->id);
+        return to_route('governorates.index');
     }
 
     /**
@@ -60,6 +68,13 @@ class GovernorateController extends Controller
      */
     public function destroy(Governorate $governorate)
     {
-        //
+        $this->governorateRepository->removeOne($governorate->id);
+        return to_route('governorates.index');
+    }
+
+    public function filterCities(Request $request)
+    {
+        return $this->governorateRepository->filterCities($request);
+        
     }
 }

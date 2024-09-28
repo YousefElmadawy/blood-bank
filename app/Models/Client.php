@@ -10,20 +10,24 @@ use Laravel\Sanctum\HasApiTokens;
 
 class Client extends Authenticatable
 {
-    use HasFactory,HasApiTokens,Notifiable ;
+    use HasFactory, HasApiTokens, Notifiable;
+
+
 
     protected $fillable = [
         'name',
         'email',
-        'password',
         'phone',
+        'password',
         'date_of_birth',
         'last_donation_date',
         'pin_code',
         'blood_type_id',
-        'city_id',
-        'api_token'
+        'api_token',
+        'fcm_token'
     ];
+
+
 
     //one to many Inverse
     public function city()
@@ -59,7 +63,7 @@ class Client extends Authenticatable
     {
         return $this->belongsToMany(BloodType::class);
     }
-    
+
     public function posts()
     {
         return $this->belongsToMany(Post::class);
