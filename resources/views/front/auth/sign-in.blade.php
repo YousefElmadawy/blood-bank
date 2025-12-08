@@ -1,5 +1,5 @@
 @extends('front.layouts.front')
- 
+
 @section('member')
     <!--not a member-->
     <div class="accounts">
@@ -19,7 +19,7 @@
             <div class="path">
                 <nav aria-label="breadcrumb">
                     <ol class="breadcrumb">
-                        <li class="breadcrumb-item"><a href="index-ltr.html">Home</a></li>
+                        <li class="breadcrumb-item"><a href="{{route('client-home')}}">Home</a></li>
                         <li class="breadcrumb-item active" aria-current="page">Sign in</li>
                     </ol>
                 </nav>
@@ -48,13 +48,17 @@
                         <img src={{ asset('front/imgs/logo-ltr.png') }}>
                     </div>
 
-                    <div class="form-group"> 
-                        <input type="text" value="{{ old('phone') }}" @class(['form-control', 'is-invalid' => $errors->has('phone')]) name="phone" class="form-control" id="exampleInputEmail1"
-                            aria-describedby="emailHelp" placeholder="Telephone number">
+                    <div class="form-group">
+                        <input type="text" value="{{ old('phone') }}"
+                               @class(['form-control', 'is-invalid' => $errors->has('phone')]) name="phone"
+                               class="form-control" id="exampleInputEmail1"
+                               aria-describedby="emailHelp" placeholder="Telephone number">
                     </div>
                     <div class="form-group">
-                        <input type="password" @class(['form-control', 'is-invalid' => $errors->has('password')]) name="password" class="form-control" id="exampleInputPassword1"
-                            placeholder=" Password">
+                        <input type="password"
+                               @class(['form-control', 'is-invalid' => $errors->has('password')]) name="password"
+                               class="form-control" id="exampleInputPassword1"
+                               placeholder=" Password">
                     </div>
                     <div class="row">
                         <div class="col-8">

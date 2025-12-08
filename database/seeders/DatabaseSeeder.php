@@ -12,13 +12,14 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // \App\Models\User::factory(10)->create();
+        // Order matters! Run in this sequence:
+        // 1. First create roles and permissions
+        $this->call(PermissionTableSeeder::class);
 
-        // \App\Models\User::factory()->create([
-        //     'name' => 'Test User',
-        //     'email' => 'test@example.com',
-        // ]);
-        // $this->call(PermissionTableSeeder::class);
+        // 2. Then create users and assign roles
+        $this->call(UserSeeder::class);
+
+        // 3. Then create other data
         $this->call(BloodTypeSeeder::class);
     }
 }

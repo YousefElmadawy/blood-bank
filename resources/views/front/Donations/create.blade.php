@@ -29,14 +29,6 @@
         </a>
     @endsection
 
-
-
-
-
-
-
-
-
     @section('content')
         <div class="requests">
             <div class="head-text">

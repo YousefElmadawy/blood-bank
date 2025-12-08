@@ -3,10 +3,8 @@
 namespace App\Http\Controllers\Front;
 
 use App\Http\Controllers\Controller;
-
 use App\Http\Requests\ClientLoginRequest;
 use App\Http\Requests\ProfileRequest;
-use App\Http\Requests\UserRequest;
 use App\Interfaces\CityRepositoryInterface;
 use App\Interfaces\ClientRepositoryInterface;
 use App\Interfaces\GovernorateRepositoryInterface;
@@ -16,21 +14,20 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Redirect;
+use Illuminate\Validation\Rules\Password;
 
 class AuthController extends Controller
 {
-    public function __construct(private ClientRepositoryInterface $clientRepository, protected GovernorateRepositoryInterface $governorateRepository, protected CityRepositoryInterface $cityRepository)
+    public function __construct(
+        private ClientRepositoryInterface        $clientRepository,
+        protected GovernorateRepositoryInterface $governorateRepository,
+        protected CityRepositoryInterface        $cityRepository
+    )
     {
-        $this->clientRepository = $clientRepository;
-        $this->governorateRepository = $governorateRepository;
-        $this->cityRepository = $cityRepository;
     }
-
 
     public function getRegister(Request $request)
     {
-
         $governorates = $this->governorateRepository->allGovornorates();
         $bloodTypes = $this->governorateRepository->allBloodTypes();
         return view('front.auth.sign-up', compact('governorates', 'bloodTypes'));
@@ -38,108 +35,167 @@ class AuthController extends Controller
 
     public function getCities($id)
     {
-        // $cities=City::where('governorate_id',$id)->pluck('name','id');
         $cities = $this->cityRepository->filterCities($id);
         return response()->json($cities);
     }
 
     public function register(Request $request)
     {
-       
-        $request->merge(['password' => bcrypt($request->password)]);
+        // Validate request
+        $validated = $request->validate([
+            'name'          => ['required', 'string', 'max:255'],
+            'email'         => ['required', 'email', 'unique:clients,email'],
+            'phone'         => ['required', 'string', 'unique:clients,phone', 'max:20'],
+            'password'      => ['required', 'confirmed', Password::min(8)],
+            'date_of_birth' => ['required', 'date', 'before:today'],
+            'blood_type'    => ['required', 'exists:blood_types,id'],
+            'governorate'   => ['required', 'exists:governorates,id'],
+            'city_id'       => ['nullable', 'exists:cities,id'],
+        ]);
 
+        try {
+            // Don't manually hash - Client model has 'hashed' cast
+            $client = $this->clientRepository->register($request);
 
-        $client = $this->clientRepository->register($request);
-        // dd($request->all());
-        $client->governorates()->sync($request->governorate);
-        $client->bloodTypes()->sync($request->blood_type);
+            // Sync relationships
+            $client->governorates()->sync($request->governorate);
+            $client->bloodTypes()->sync($request->blood_type);
 
-        return to_route('client-home');
+            // Auto-login after registration
+            Auth::guard('client-web')->login($client);
+
+            return redirect()
+                ->route('client-home')
+                ->with('success', 'Registration successful! Welcome to Blood Bank.');
+
+        } catch (\Exception $e) {
+            return redirect()
+                ->back()
+                ->withInput($request->except('password', 'password_confirmation'))
+                ->with('error', 'Registration failed. Please try again.');
+        }
     }
-
 
     public function getLogin()
     {
-
-
         return view('front.auth.sign-in');
     }
 
     public function login(ClientLoginRequest $request)
     {
+        try {
+            $client = $this->clientRepository->login($request);
 
+            if ($client && Hash::check($request->password, $client->password)) {
+                Auth::guard('client-web')->login($client, $request->boolean('remember'));
 
-        $client = $this->clientRepository->login($request);
+                $request->session()->regenerate();
 
-        if ($client && Hash::check($request->password, $client->password)) {
+                return redirect()
+                    ->intended(route('client-home'))
+                    ->with('success', 'Welcome back, ' . $client->name . '!');
+            }
 
-            Auth::guard('client-web')->attempt($request->only('phone', 'password'));
+            return redirect()
+                ->back()
+                ->withInput($request->only('phone'))
+                ->with('error', 'Invalid credentials. Please check your phone and password.');
 
-            return to_route('client-home');
-        } else {
-            return redirect()->back()->with('message', 'Invalid Data!');
+        } catch (\Exception $e) {
+            return redirect()
+                ->back()
+                ->withInput($request->only('phone'))
+                ->with('error', 'Login failed. Please try again.');
         }
     }
-    public function getProfile(Client $client, Request $request)
+
+    public function getProfile()
     {
         $client = Auth::guard('client-web')->user();
+
+        if (!$client) {
+            return redirect()->route('getLogin');
+        }
 
         $bloodTypes = $this->governorateRepository->allBloodTypes();
         $governorates = $this->governorateRepository->allGovornorates();
+
         return view('front.auth.edit-profile', compact('governorates', 'bloodTypes', 'client'));
     }
 
-    public function editProfile(ProfileRequest $request, Client $client)
+    public function editProfile(ProfileRequest $request)
     {
-        $attributes = $request->all();
-
-        if (!empty($request->password)) {
-            $attributes['password'] = bcrypt($request->password);
-        }
-
         $client = Auth::guard('client-web')->user();
 
-        $this->clientRepository->profile($client, $attributes);
+        if (!$client) {
+            return redirect()->route('getLogin');
+        }
 
-        // if ($request->has('governorate_id')) {
-        //     $client->governorates()->sync($request->governorate_id);
-        // }
+        try {
+            $attributes = $request->validated();
 
-        // if ($request->has('blood_type_id')) {
-        //     $client->bloodTypes()->sync($request->blood_type_id);
-        // }
+            // Only hash password if provided
+            if (!empty($request->password)) {
+                $attributes['password'] = $request->password; // Model will auto-hash
+            } else {
+                unset($attributes['password']);
+            }
 
-        return to_route('client-home');
+            $this->clientRepository->profile($client, $attributes);
+
+            return redirect()
+                ->route('getProfile')
+                ->with('success', 'Profile updated successfully!');
+
+        } catch (\Exception $e) {
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with('error', 'Profile update failed. Please try again.');
+        }
     }
-    public function forgetPassword(Request $request)
+
+    public function forgetPassword()
     {
         return view('front.auth.reset-password');
     }
 
     public function resetPassword(Request $request)
     {
-
-        validator()->make($request->all(), [
-            'phone' => 'required|numeric',
+        $validated = $request->validate([
+            'phone' => ['required', 'numeric', 'exists:clients,phone'],
         ]);
 
-        $client = $this->clientRepository->resetPassword($request);
+        try {
+            $client = $this->clientRepository->resetPassword($request);
 
-        if ($client) {
-
-            $code = rand(1111, 9999);
-            $data = $client->update([
-                'pin_code' => $code
-            ]);
-            if ($data) {
-                //send mail with code to user e-mail 
-                Mail::to($client->email)
-                    ->bcc("yousefelmadawy95@gmail.com")
-                    ->send(new ResetPassword($client));
-                return redirect()->back()->with('message', 'check your mail!');
+            if (!$client) {
+                return redirect()
+                    ->back()
+                    ->withInput()
+                    ->with('error', 'No account found with this phone number.');
             }
+
+            // Generate 6-digit code
+            $code = rand(100000, 999999);
+
+            $client->update(['pin_code' => $code]);
+
+            // Send email (removed hardcoded BCC)
+            Mail::to($client->email)->send(new ResetPassword($client));
+
+            return redirect()
+                ->back()
+                ->with('success', 'Password reset code sent to your email!');
+
+        } catch (\Exception $e) {
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with('error', 'Failed to send reset code. Please try again.');
         }
     }
+
     public function GetChangePassword()
     {
         return view('front.auth.change-password');
@@ -147,30 +203,46 @@ class AuthController extends Controller
 
     public function changePassword(Request $request)
     {
+        $validated = $request->validate([
+            'pin_code' => ['required', 'numeric', 'digits:6'],
+            'password' => ['required', 'confirmed', Password::min(8)],
+        ]);
 
-        $client = $this->clientRepository->newPassword($request);
+        try {
+            $client = $this->clientRepository->newPassword($request);
 
+            if (!$client) {
+                return redirect()
+                    ->back()
+                    ->with('error', 'Invalid or expired PIN code.');
+            }
 
-        if (!$client) {
-            return redirect()->back()->with('message', 'Invalid Data!');
+            // Update password and clear PIN code
+            $client->update([
+                'password' => $request->password, // Model will auto-hash
+                'pin_code' => null, // Clear used PIN
+            ]);
+
+            return redirect()
+                ->route('getLogin')
+                ->with('success', 'Password changed successfully! Please login.');
+
+        } catch (\Exception $e) {
+            return redirect()
+                ->back()
+                ->with('error', 'Password change failed. Please try again.');
         }
-
-        $client->password = Hash::make($request->password);
-        $client->save();
-
-        // return Redirect::route('client-home')->with('message', 'Password Changed sucssesfuly');
-        return to_route('client-home');
     }
 
     public function logout(Request $request)
     {
-
         Auth::guard('client-web')->logout();
 
         $request->session()->invalidate();
-
         $request->session()->regenerateToken();
 
-        return to_route('getLogin');
+        return redirect()
+            ->route('getLogin')
+            ->with('success', 'You have been logged out successfully.');
     }
 }

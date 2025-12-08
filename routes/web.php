@@ -29,12 +29,10 @@ use Illuminate\Support\Facades\Route;
 */
 
 
- 
+// Auth::routes(); // Disabled - using custom auth routes in auth.php
 
-Auth::routes();
+Route::prefix('dashboard')->middleware(['auth', 'role:admin'])->group(function() {
 
-Route::prefix('dashboard')->middleware('auth')->group(function() {
- 
     Route::get('/', [HomeController::class, 'index'])->name('dashboard');
     Route::resource('permissions', PermissionController::class);
 
@@ -44,7 +42,7 @@ Route::prefix('dashboard')->middleware('auth')->group(function() {
     Route::get('roles/{roleId}/give-permissions', [RoleController::class, 'addPermissionToRole'])->name('addPermission');
     Route::put('roles/{roleId}/give-permissions', [RoleController::class, 'givePermissionToRole'])->name('givePermission');
 
- 
+
 
     Route::resource('governorates' , GovernorateController::class);
     Route::resource('cities' , CityController::class);
@@ -53,8 +51,6 @@ Route::prefix('dashboard')->middleware('auth')->group(function() {
     Route::resource('donations' , DonationRequestController::class);
     Route::resource('contact-us' , ContactController::class);
     Route::resource('settings' , SettingController::class);
-    
-// Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
 });
 
 require __DIR__. '/auth.php';

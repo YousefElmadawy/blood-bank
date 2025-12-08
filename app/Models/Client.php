@@ -74,4 +74,10 @@ class Client extends Authenticatable
         'password',
         'api_token',
     ];
+
+    protected $casts = [
+        'password' => 'hashed',
+        'date_of_birth' => 'date',
+        'last_donation_date' => 'date',
+    ];
 }

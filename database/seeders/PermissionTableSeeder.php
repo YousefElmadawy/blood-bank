@@ -50,23 +50,36 @@ class PermissionTableSeeder extends Seeder
      */
     public function run(): void
     {
+        // Create permissions (if they don't exist)
         foreach ($this->permissions as $permission) {
-            Permission::create(['name' => $permission]);
+            Permission::firstOrCreate(['name' => $permission]);
         }
 
-        // Create admin User and assign the role to him.
-        $user = User::create([
-            'name' => 'yousef77',
-            'email' => 'yousef77@admin.com',
-            'password' => Hash::make('123456789')
+        // Create roles
+        $adminRole = Role::firstOrCreate(['name' => 'admin']);
+        $userRole = Role::firstOrCreate(['name' => 'user']);
+        $moderatorRole = Role::firstOrCreate(['name' => 'moderator']);
+
+        // Get all permissions
+        $allPermissions = Permission::all();
+
+        // Admin gets all permissions
+        $adminRole->syncPermissions($allPermissions);
+
+        // User gets limited permissions (view only)
+        $userRole->syncPermissions([
+            'post-list',
+            'category-list',
         ]);
 
-        $role = Role::create(['name' => 'Admin']);
+        // Moderator gets moderate permissions
+        $moderatorRole->syncPermissions([
+            'post-list', 'post-create', 'post-edit',
+            'category-list', 'category-create', 'category-edit',
+            'donations-list',
+        ]);
 
-        $permissions = Permission::pluck('id', 'id')->all();
-
-        $role->syncPermissions($permissions);
-
-        $user->assignRole([$role->id]);
+        // Note: Users are created in UserSeeder, not here
+        // This keeps concerns separated
     }
 }

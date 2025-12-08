@@ -13,17 +13,14 @@ class FrontendCheckMiddleware
     /**
      * Handle an incoming request.
      *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     * @param \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response) $next
      */
     public function handle(Request $request, Closure $next): Response
     {
-
-        dd($request->all());
-        $client=Client::all();
-        if (!$client) {
-            return view('front.auth.sign-in');
+        if (!Auth::guard('client-web')->check()) {
+            return redirect()->route('getLogin');
         }
-        
+
         return $next($request);
     }
 }

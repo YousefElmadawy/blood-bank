@@ -41,5 +41,51 @@ class User extends Authenticatable
      */
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'password' => 'hashed',
     ];
+
+    /**
+     * Check if user is an admin
+     */
+    public function isAdmin(): bool
+    {
+        return $this->hasRole('admin');
+    }
+
+    /**
+     * Check if user is a moderator
+     */
+    public function isModerator(): bool
+    {
+        return $this->hasRole('moderator');
+    }
+
+    /**
+     * Check if user has any of the given roles
+     */
+    public function hasAnyRole(...$roles): bool
+    {
+        return $this->hasRole($roles);
+    }
+
+    /**
+     * Check if user has all of the given roles
+     */
+    public function hasAllRoles(...$roles): bool
+    {
+        foreach ($roles as $role) {
+            if (!$this->hasRole($role)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Get user's role names as a comma-separated string
+     */
+    public function getRolesString(): string
+    {
+        return $this->getRoleNames()->join(', ');
+    }
 }

@@ -80,7 +80,7 @@
 
                 <div class="form-group">
                     <select class="form-control" name="blood_type" id="blood_type_id">
-                        <option value="{{$client->bloodType->id }}">{{$client->bloodType->name }}</option>
+                        <option value="{{$client?->bloodType?->id }}">{{$client?->bloodType?->name }}</option>
                         @foreach ($bloodTypes as $bloodType)
                             <option value="{{$bloodType->id }}">{{ $bloodType->name }}</option>
                         @endforeach
@@ -89,7 +89,7 @@
                 </div>
                 <div class="form-group">
                     <select class="form-control" name="governorate" id="governorate_id">
-                        <option value="{{$client->city->governorate->id }}">{{$client->city->governorate->name }}</option>
+                        <option value="{{$client?->city?->governorate?->id }}">{{$client?->city?->governorate?->name }}</option>
                         @foreach ($governorates as $governorate)
                             <option value="{{ $governorate->id }}">{{ $governorate->name }}</option>
                         @endforeach
@@ -99,7 +99,7 @@
                 <div class="form-group">
 
                     <select class="form-control" name="city" id="city_id">
-                       <option value="{{$client->city->id }}">{{$client->city->name }}</option>
+                       <option value="{{$client?->city?->id }}">{{$client?->city?->name }}</option>
                     </select>
                 </div>
 
